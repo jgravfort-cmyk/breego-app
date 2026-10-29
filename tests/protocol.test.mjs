@@ -61,3 +61,15 @@ test('splits back-to-back messages that have no line ending', () => {
   a.flush();
   assert.deepEqual(lines, ['/SEE/1/2', '/S00/F/2,1,1,+06,000,+09,000,1,124,1']);
 });
+
+test('real X40 status line from a Breego box', () => {
+  const m = parseLine('/S00/H/2,1,1,+03,+03,+03,+03,2,146,2,+20,-20,0');
+  assert.equal(m.kind, 'status');
+  assert.equal(m.zones, 2);
+  assert.equal(m.leftSet, 3);
+  assert.equal(m.volt, 14.6);
+  assert.equal(m.speed, 'max');
+  assert.equal(m.max, 20);
+  assert.equal(m.min, -20);
+  assert.equal(m.binding, 0);
+});

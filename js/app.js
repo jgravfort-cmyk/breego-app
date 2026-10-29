@@ -2,7 +2,7 @@ import { Fridge, store } from './fridge.js';
 import { BleTransport, SimTransport, bluetoothSupported } from './transports.js';
 import { FAULTS, PROTECTION, LINE_ENDINGS, RANGE, toCelsius, fromCelsius } from './protocol.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 
@@ -178,6 +178,7 @@ function renderAll() {
 }
 
 function renderDial() {
+  syncScale();
   const s = fridge?.status;
   const target = targetOf(zone);
   const cur = currentOf(zone);
@@ -193,7 +194,7 @@ function renderDial() {
   $('#knob').setAttribute('transform', `translate(${kx.toFixed(1)} ${ky.toFixed(1)})`);
   $('#knob').style.display = target == null ? 'none' : '';
   if (cur != null) {
-    const [cx, cy] = pt(v2a(Math.max(RANGE.min, Math.min(RANGE.max, cur))));
+    const [cx, cy] = pt(v2a(Math.max(scale.min, Math.min(scale.max, cur))));
     $('#curdot').setAttribute('cx', cx); $('#curdot').setAttribute('cy', cy);
     $('#curdot').style.display = '';
   } else $('#curdot').style.display = 'none';
@@ -266,7 +267,15 @@ function renderPower(s) {
 
 // ---------- dial geometry ----------
 const CX = 150, CY = 150, R = 118, A0 = 135, SWEEP = 270;
-const v2a = (v) => A0 + (v - RANGE.min) / (RANGE.max - RANGE.min) * SWEEP;
+// The scale follows the range the box reports (X40: -20 to +20), so the arc always matches what the box allows.
+let scale = { min: RANGE.min, max: RANGE.max };
+const v2a = (v) => A0 + (Math.max(scale.min, Math.min(scale.max, v)) - scale.min) / (scale.max - scale.min) * SWEEP;
+function syncScale() {
+  const l = fridge?.limits;
+  if (!l || (l.min === scale.min && l.max === scale.max)) return;
+  scale = { min: l.min, max: l.max };
+  buildDial();
+}
 const pt = (a, r = R) => [CX + r * Math.cos(a * Math.PI / 180), CY + r * Math.sin(a * Math.PI / 180)];
 function arc(a1, a2, r = R) {
   const [x1, y1] = pt(a1, r), [x2, y2] = pt(a2, r);
@@ -274,11 +283,13 @@ function arc(a1, a2, r = R) {
 }
 function buildDial() {
   let ticks = '';
-  for (let v = RANGE.min; v <= RANGE.max; v++) {
+  for (let v = scale.min; v <= scale.max; v++) {
     const a = v2a(v), major = v % 5 === 0, [x1, y1] = pt(a, R + 16), [x2, y2] = pt(a, R + (major ? 24 : 20));
     ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--ink-3)" stroke-width="${major ? 1.6 : 1}" opacity="${major ? 0.8 : 0.4}" stroke-linecap="round"/>`;
   }
-  const labels = [-20, -10, 0, 10].map((v) => {
+  const marks = [];
+  for (let v = Math.ceil(scale.min / 10) * 10; v <= scale.max; v += 10) marks.push(v);
+  const labels = marks.map((v) => {
     const [x, y] = pt(v2a(v), R + 38);
     return `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-3)" class="tl" data-v="${v}">${v}</text>`;
   }).join('');
@@ -304,7 +315,7 @@ function bindDial() {
     let rel = (a - A0) / SWEEP;
     if (rel > 1) rel = rel > 1 + ((360 - SWEEP) / SWEEP) / 2 ? 0 : 1;
     const { min, max } = fridge.limits;
-    return Math.round(Math.min(max, Math.max(min, RANGE.min + rel * (RANGE.max - RANGE.min))));
+    return Math.round(Math.min(max, Math.max(min, scale.min + rel * (scale.max - scale.min))));
   };
   el.addEventListener('pointerdown', (e) => {
     if (!fridge?.status || e.target.closest('.round')) return;

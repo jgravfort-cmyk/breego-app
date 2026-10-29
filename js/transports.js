@@ -100,7 +100,7 @@ export class SimTransport {
     const cur = (c) => formatTemp(s.unit === 2 ? c * 9 / 5 + 32 : c);
     return `/S00/${s.type}/${s.zones},${s.on},${s.unit},${cur(s.leftCur)},${s.zones === 2 ? cur(s.rightCur) : '000'},` +
       `${formatTemp(s.leftSet)},${s.zones === 2 ? formatTemp(s.rightSet) : '000'},${s.protection},` +
-      `${String(Math.round(s.volt)).padStart(3, '0')},${s.speed}\n`;
+      `${String(Math.round(s.volt)).padStart(3, '0')},${s.speed},+20,-20,0\n`;
   }
 
   emit(text) {
