@@ -1,5 +1,5 @@
 // Keeps the app shell available offline. Bump CACHE when files change.
-const CACHE = 'breego-v0.1.0';
+const CACHE = 'breego-v0.1.1';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'js/app.js', 'js/fridge.js', 'js/protocol.js', 'js/transports.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',

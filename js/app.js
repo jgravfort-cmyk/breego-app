@@ -2,7 +2,7 @@ import { Fridge, store } from './fridge.js';
 import { BleTransport, SimTransport, bluetoothSupported } from './transports.js';
 import { FAULTS, PROTECTION, LINE_ENDINGS, RANGE, toCelsius, fromCelsius } from './protocol.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 
@@ -50,10 +50,17 @@ function initConnect() {
   if (!bluetoothSupported()) {
     $('#btn-connect').disabled = true;
     $('#c-title').textContent = 'Denne nettleseren kan ikke bruke Bluetooth';
-    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const ua = navigator.userAgent;
+    const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const safari = /Safari\//.test(ua) && !/Chrome|Chromium|CriOS|Edg\//.test(ua);
+    const firefox = /Firefox\//.test(ua);
     $('#c-sub').textContent = ios
-      ? 'iPhone tillater ikke Bluetooth fra nettsider. Breego-appen kommer i App Store. Du kan prøve demoen så lenge.'
-      : 'Åpne siden i Chrome på Android eller på en datamaskin. Du kan prøve demoen så lenge.';
+      ? 'iPhone tillater ikke Bluetooth fra nettsider. Breego-appen kommer i App Store. Til testing kan du bruke den gratis nettleseren Bluefy. Du kan også prøve demoen.'
+      : safari
+        ? 'Safari støtter ikke Bluetooth. Kopier adressen og åpne den i Google Chrome. Du kan prøve demoen så lenge.'
+        : firefox
+          ? 'Firefox støtter ikke Bluetooth. Kopier adressen og åpne den i Google Chrome. Du kan prøve demoen så lenge.'
+          : 'Åpne siden i Google Chrome på Android, Mac eller PC. Du kan prøve demoen så lenge.';
   }
   $('#btn-connect').onclick = () => start(new BleTransport(), false);
   $('#btn-demo').onclick = () => start(new SimTransport(), true);
