@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Breego</title>
+<meta name="description" content="Styr Breego-kjøleboksen din over Bluetooth.">
+<meta name="theme-color" content="#F4F8FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1620" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,500;112,700;125,800&family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- CONNECT -->
+  <section class="view connect" id="v-connect">
+    <div class="wordmark">BREE<i>GO</i></div>
+    <div class="radar" id="radar" aria-hidden="true">
+      <span></span><span></span><span></span>
+      <svg class="box" viewBox="0 0 96 72" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="6" y="20" width="84" height="46" rx="8"/><path d="M10 20 L16 8 H80 L86 20"/><path d="M34 14 H62" stroke-linecap="round"/><path d="M60 36 v14 M53 40 l14 6 M53 46 l14 -6" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="connect-text">
+      <h1 id="c-title">Koble til kjøleboksen</h1>
+      <p id="c-sub">Slå på boksen og hold telefonen i nærheten. Trykk på knappen og velg boksen i listen.</p>
+    </div>
+    <div class="connect-actions">
+      <button class="btn" id="btn-connect">Finn kjøleboksen</button>
+      <button class="btn ghost" id="btn-demo">Prøv demoen uten boks</button>
+    </div>
+  </section>
+
+  <!-- MAIN -->
+  <section class="view main" id="v-main" hidden>
+    <header class="head">
+      <div class="t">
+        <button class="name" id="devname" aria-label="Gi boksen nytt navn">Kjøleboksen</button>
+        <span class="chip-conn" id="conn" data-state="connected">Tilkoblet</span>
+      </div>
+      <button class="pwr on" id="pwr" aria-label="Slå av kjøleboksen" aria-pressed="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+    </header>
+
+    <div class="pages">
+      <!-- HOME -->
+      <div class="page scroll" id="p-home">
+        <div class="banner-inline fault" id="fault" hidden></div>
+        <div class="banner-inline warn" id="noreply" hidden>
+          <b>Boksen svarer ikke</b>
+          <span>Telefonen er koblet til, men boksen sender ikke status. Åpne Feilsøking under Innstillinger og prøv en annen linjeslutt.</span>
+        </div>
+
+        <div class="seg" role="group" aria-label="Velg sone" id="zones"></div>
+
+        <div class="dialwrap" id="dial">
+          <canvas id="frost"></canvas>
+          <svg viewBox="0 0 300 300" id="dialsvg" aria-hidden="true"></svg>
+          <div class="dialcenter">
+            <span class="lbl" id="d-lbl">Ønsket</span>
+            <span class="big num" id="d-target">–</span>
+            <span class="cur num">Nå <b id="d-cur">–</b></span>
+          </div>
+          <div class="dialbtns">
+            <button class="round" id="minus" aria-label="Senk temperaturen">−</button>
+            <button class="round" id="plus" aria-label="Øk temperaturen">+</button>
+          </div>
+        </div>
+        <div class="statusline" id="statusline" aria-live="polite"></div>
+
+        <div class="presets" id="presets" role="group" aria-label="Hurtigvalg"></div>
+
+        <div class="card">
+          <h3>Modus <span class="eyebrow" id="mode-rpm"></span></h3>
+          <div class="modes">
+            <button class="mode eco" data-mode="eco" aria-pressed="true"><b>ECO</b><small>Stille og sparsom. Best på tur og over natten.</small></button>
+            <button class="mode max" data-mode="max" aria-pressed="false"><b>MAX</b><small>Full kraft. Kjøler ned raskt etter innkjøp.</small></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Strøm <span class="eyebrow">Inn til boksen</span></h3>
+          <div class="batt">
+            <div class="ring">
+              <svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="none" stroke="var(--surface-2)" stroke-width="8"/><circle id="ringarc" cx="42" cy="42" r="36" fill="none" stroke="var(--ok)" stroke-width="8" stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2"/></svg>
+              <div class="v num" id="b-volt">–</div>
+            </div>
+            <div class="kv">
+              <div><span>Tilstand</span><b id="b-state">–</b></div>
+              <div><span>Batterivern</span><b id="b-prot">–</b></div>
+              <div><span>Modell</span><b id="b-model">–</b></div>
+            </div>
+          </div>
+          <div class="runtime" id="b-help"></div>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div class="page scroll" id="p-log" hidden>
+        <div class="card">
+          <h3>Temperatur <span class="legend" id="legend"></span></h3>
+          <svg class="chart" id="chart" viewBox="0 0 320 180" role="img" aria-label="Temperatur over tid"></svg>
+          <p class="empty" id="chart-empty">Loggen fylles mens telefonen er koblet til boksen. Ett punkt per minutt, lagret på denne telefonen i 24 timer.</p>
+        </div>
+        <div class="card">
+          <h3>Hendelser</h3>
+          <div class="events" id="events"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page scroll" id="p-set" hidden>
+        <div class="card">
+          <h3>Batterivern</h3>
+          <div class="seg sm" role="group" aria-label="Batterivern" id="prot">
+            <button data-p="1" aria-pressed="false">Lav</button>
+            <button data-p="2" aria-pressed="false">Middels</button>
+            <button data-p="3" aria-pressed="false">Høy</button>
+          </div>
+          <div class="note-box" id="prot-help"></div>
+        </div>
+
+        <div class="card">
+          <h3>Visning</h3>
+          <div class="set">
+            <div class="l"><b>Temperaturenhet</b><small>Endres også på boksens skjerm</small></div>
+            <div class="seg sm unit" role="group" aria-label="Temperaturenhet" id="unit"><button data-u="C" aria-pressed="true">°C</button><button data-u="F" aria-pressed="false">°F</button></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Boksen</h3>
+          <div class="set"><div class="l"><b>Navn</b><small id="nm">Kjøleboksen</small></div><button class="pill" id="rename">Endre</button></div>
+          <div class="set"><div class="l"><b>Koble fra</b><small>Telefonen slipper boksen</small></div><button class="pill" id="disconnect">Koble fra</button></div>
+          <div class="set"><div class="l"><b>Tøm loggen</b><small>Sletter historikken på denne telefonen</small></div><button class="pill" id="clearlog">Tøm</button></div>
+        </div>
+
+        <details class="card debug" id="debug">
+          <summary><h3>Feilsøking</h3></summary>
+          <p class="note-box">For testing. Her ser du alt som sendes til og fra boksen.</p>
+          <label class="field" for="eol">Linjeslutt på kommandoer
+            <select id="eol"></select>
+          </label>
+          <form class="rawform" id="rawform">
+            <label class="sr" for="raw">Kommando</label>
+            <input id="raw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="/S00/1/-01">
+            <button class="pill" type="submit">Send</button>
+          </form>
+          <div class="rawlog" id="rawlog" aria-live="off"></div>
+          <button class="pill" id="copylog" type="button">Kopier loggen</button>
+        </details>
+        <p class="foot">Breego testversjon · <span id="ver"></span></p>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Hovedmeny">
+      <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 6l2.5-1.5M9.5 19.5 12 18l2.5 1.5"/></svg>Kjøling</button>
+      <button data-v="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>Logg</button>
+      <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Innstillinger</button>
+    </nav>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
+  <dialog class="sheet" id="namedlg">
+    <form method="dialog" id="nameform">
+      <label for="namein"><b>Navn på boksen</b></label>
+      <input id="namein" type="text" maxlength="24" autocomplete="off">
+      <div class="sheet-actions"><button class="pill" value="cancel" type="submit">Avbryt</button><button class="pill primary" value="ok" type="submit">Lagre</button></div>
+    </form>
+  </dialog>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
